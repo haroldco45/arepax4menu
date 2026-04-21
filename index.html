@@ -180,6 +180,11 @@ main{padding:12px 12px 120px;}
 .send-btn:active{transform:scale(.98);}
 .send-err{color:var(--red);font-size:.78rem;margin-top:6px;text-align:center;min-height:16px;}
 
+/* SAVED DATA BADGE */
+.saved-badge{display:none;align-items:center;gap:6px;background:rgba(74,222,128,.08);border:1px solid #2a6e3f;border-radius:8px;padding:7px 12px;margin-bottom:14px;font-size:.75rem;color:#4ade80;}
+.saved-badge.show{display:flex;}
+.saved-clear{margin-left:auto;background:transparent;border:none;color:#555;font-size:.8rem;cursor:pointer;text-decoration:underline;}
+
 /* ---- SUCCESS ---- */
 #successScreen{position:fixed;inset:0;background:rgba(0,0,0,.97);z-index:700;display:none;align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center;}
 #successScreen.show{display:flex;}
@@ -463,7 +468,10 @@ footer{text-align:center;padding:14px;font-size:.6rem;color:#333;letter-spacing:
 
 </main>
 
-<footer>Desarrollada por Vibras Positivas HM — Derechos de Autor Reservados</footer>
+<footer>
+  <div style="font-size:.7rem;color:#555;letter-spacing:1px;">Desarrollada por <span style="color:#F5C400;font-weight:700;">Vibras Positivas HM</span> — Derechos de Autor Reservados</div>
+  <div style="font-size:.6rem;color:#333;margin-top:3px;">📲 3117700431</div>
+</footer>
 
 <!-- FLOAT CART BUTTON -->
 <button class="float-cart hidden" id="floatCart" onclick="openCart()">
@@ -517,6 +525,10 @@ footer{text-align:center;padding:14px;font-size:.6rem;color:#333;letter-spacing:
       </div>
 
       <!-- Client data -->
+      <div class="saved-badge" id="savedBadge">
+        ✅ Datos recordados de tu último pedido
+        <button class="saved-clear" onclick="clearSavedData()">Borrar</button>
+      </div>
       <div class="form-group">
         <label class="form-label">👤 Nombre completo</label>
         <input type="text" id="fNombre" class="form-input" placeholder="Tu nombre">
@@ -729,6 +741,7 @@ function openCheckout(){
   renderOrderSummary();
   closeCart();
   setFormOT(orderType);
+  loadClientData();
   document.getElementById('checkoutDrawer').classList.add('open');
 }
 function closeCheckout(){document.getElementById('checkoutDrawer').classList.remove('open');}
@@ -739,6 +752,40 @@ function renderOrderSummary(){
     return`<div class="os-item"><span>${qty}x ${name}</span><span>${fmtPrice(price*qty)}</span></div>`;
   }).join('');
   document.getElementById('osTotal').textContent=fmtPrice(cartTotal());
+}
+
+// ========== DATOS CLIENTE — localStorage ==========
+const CLIENT_KEY='ax4_client_data';
+
+function saveClientData(){
+  const data={
+    nombre: document.getElementById('fNombre').value.trim(),
+    wa:     document.getElementById('fWhatsApp').value.trim(),
+    dir:    document.getElementById('fDireccion').value.trim()
+  };
+  if(data.nombre||data.wa) localStorage.setItem(CLIENT_KEY, JSON.stringify(data));
+}
+
+function loadClientData(){
+  try{
+    const raw=localStorage.getItem(CLIENT_KEY);
+    if(!raw) return;
+    const d=JSON.parse(raw);
+    if(d.nombre) document.getElementById('fNombre').value=d.nombre;
+    if(d.wa)     document.getElementById('fWhatsApp').value=d.wa;
+    if(d.dir)    document.getElementById('fDireccion').value=d.dir;
+    if(d.nombre||d.wa){
+      document.getElementById('savedBadge').classList.add('show');
+    }
+  }catch(e){}
+}
+
+function clearSavedData(){
+  localStorage.removeItem(CLIENT_KEY);
+  document.getElementById('fNombre').value='';
+  document.getElementById('fWhatsApp').value='';
+  document.getElementById('fDireccion').value='';
+  document.getElementById('savedBadge').classList.remove('show');
 }
 
 // ========== PAYMENT ==========
@@ -809,6 +856,9 @@ function sendOrder(){
   if(!selectedPay){err.textContent='Selecciona la forma de pago.';return;}
   if(!Object.keys(cart).length){err.textContent='El carrito está vacío.';return;}
 
+  // Guardar datos del cliente para próximos pedidos
+  saveClientData();
+
   // Build message
   const tipoEmoji=orderType==='domicilio'?'🛵':'🍽️';
   const tipoLabel=orderType==='domicilio'?'DOMICILIO':'EN MESA';
@@ -839,16 +889,35 @@ function sendOrder(){
   msg+=`💳 *Pago:* ${selectedPay.toUpperCase()}\n`;
   if(obs) msg+=`📝 *Obs:* ${obs}\n`;
   msg+=`━━━━━━━━━━━━━━━━━━━\n`;
-  msg+=`_Pedido enviado desde el Menú Digital Arepa X4_`;
+  msg+=`_Pedido enviado desde el Menú Digital Arepa X4_\n`;
+  msg+=`_App desarrollada por *Vibras Positivas HM* · 3117700431_`;
 
-  const url=`https://wa.me/573137340806?text=${encodeURIComponent(msg)}`;
-  window.open(url,'_blank');
-  closeCheckout();
-  document.getElementById('successScreen').classList.add('show');
+  const phone='573137340806';
+  const encoded=encodeURIComponent(msg);
+  // Intentar abrir WhatsApp nativo directamente (sin popup de navegador)
+  const waNative=`whatsapp://send?phone=${phone}&text=${encoded}`;
+  const waWeb=`https://wa.me/${phone}?text=${encoded}`;
+
+  // Crear enlace invisible y hacer click — evita el popup "abrir enlace desde la web"
+  const a=document.createElement('a');
+  a.href=waNative;
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Si WhatsApp no está instalado, abrir wa.me como fallback tras 1.5s
+  const fallback=setTimeout(()=>{ window.location.href=waWeb; },1500);
+  window.addEventListener('blur',()=>clearTimeout(fallback),{once:true});
+
+  setTimeout(()=>{
+    closeCheckout();
+    document.getElementById('successScreen').classList.add('show');
+  }, 800);
 }
 
 function resetOrder(){
-  // Clear cart
+  // Limpiar carrito
   Object.keys(cart).forEach(id=>{
     cart[id]=0;
     const el=document.getElementById('qty-'+id);
@@ -859,9 +928,7 @@ function resetOrder(){
   cart={};
   updateCartUI();
   selectedPay='';
-  document.getElementById('fNombre').value='';
-  document.getElementById('fWhatsApp').value='';
-  document.getElementById('fDireccion').value='';
+  // NO borramos nombre/wa/dirección — quedan para el próximo pedido
   document.getElementById('fMesa').value='';
   document.getElementById('fObs').value='';
   document.getElementById('sendErr').textContent='';
