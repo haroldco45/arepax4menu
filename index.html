@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arepa X4 — Asados y Restaurante</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --black: #0d0d0d;
+    --yellow: #F5C400;
+    --red: #CC1111;
+    --white: #FFFFFF;
+    --gray: #1a1a1a;
+    --card: #141414;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--black);
+    font-family: 'Nunito', sans-serif;
+    color: var(--white);
+    min-height: 100vh;
+  }
+
+  /* ======= SUBSCRIPTION GATE ======= */
+  #gate {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.97);
+    z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    padding: 24px;
+  }
+  #gate.hidden { display: none; }
+  .gate-box {
+    background: var(--card);
+    border: 2px solid var(--yellow);
+    border-radius: 20px;
+    padding: 36px 28px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(245,196,0,0.2);
+  }
+  .gate-logo { font-family:'Bebas Neue',sans-serif; font-size:2.4rem; color:var(--yellow); letter-spacing:2px; line-height:1; }
+  .gate-sub { font-size:0.85rem; color:#aaa; margin-bottom:20px; text-transform:uppercase; letter-spacing:1px; }
+  .gate-box h2 { font-size:1.1rem; font-weight:800; margin-bottom:6px; color:var(--white); }
+  .gate-box p { font-size:0.85rem; color:#ccc; margin-bottom:22px; line-height:1.5; }
+  .gate-input {
+    width:100%; padding:12px 16px;
+    background:#222; border:1.5px solid #444;
+    border-radius:10px; color:var(--white);
+    font-size:1rem; font-family:'Nunito',sans-serif;
+    margin-bottom:12px; outline:none;
+    transition: border-color .2s;
+  }
+  .gate-input:focus { border-color: var(--yellow); }
+  .gate-btn {
+    width:100%; padding:14px;
+    background: var(--yellow); color: var(--black);
+    border:none; border-radius:10px;
+    font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:2px;
+    cursor:pointer; transition: transform .1s, opacity .2s;
+  }
+  .gate-btn:hover { opacity:.9; transform:scale(1.01); }
+  .gate-err { color:var(--red); font-size:0.82rem; margin-top:8px; min-height:18px; }
+  .trial-btn {
+    margin-top:14px; background:transparent;
+    border:1.5px solid #444; color:#aaa;
+    width:100%; padding:11px;
+    border-radius:10px; font-size:0.85rem;
+    cursor:pointer; transition: border-color .2s, color .2s;
+  }
+  .trial-btn:hover { border-color:var(--yellow); color:var(--yellow); }
+
+  /* ======= EXPIRED SCREEN ======= */
+  #expired {
+    position: fixed; inset:0;
+    background: rgba(0,0,0,0.98);
+    z-index: 9998;
+    display: none;
+    align-items:center; justify-content:center; flex-direction:column;
+    padding:24px; text-align:center;
+  }
+  #expired.show { display:flex; }
+  #expired h2 { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--red); margin-bottom:10px; }
+  #expired p { color:#ccc; font-size:0.9rem; line-height:1.6; }
+  #expired a {
+    display:inline-block; margin-top:20px;
+    background:var(--yellow); color:var(--black);
+    padding:12px 28px; border-radius:10px;
+    font-family:'Bebas Neue',sans-serif; font-size:1.1rem;
+    letter-spacing:2px; text-decoration:none;
+  }
+
+  /* ======= HEADER ======= */
+  header {
+    background: linear-gradient(135deg, #111 0%, #1e1200 100%);
+    border-bottom: 3px solid var(--yellow);
+    padding: 20px 16px 16px;
+    text-align: center;
+    position: relative;
+  }
+  .header-top { display:flex; align-items:center; justify-content:center; gap:14px; flex-wrap:wrap; }
+  .logo-badge {
+    background: var(--yellow);
+    width: 76px; height: 76px;
+    border-radius: 16px;
+    display: flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    box-shadow: 0 4px 20px rgba(245,196,0,0.4);
+    flex-shrink:0;
+    transform: rotate(-3deg);
+  }
+  .logo-badge .lg1 { font-family:'Bebas Neue',sans-serif; font-size:1.4rem; color:var(--black); line-height:1; }
+  .logo-badge .lg2 { font-family:'Bebas Neue',sans-serif; font-size:2rem; color:var(--red); line-height:1; }
+  .header-text h1 { font-family:'Bebas Neue',sans-serif; font-size:2.8rem; color:var(--white); letter-spacing:3px; line-height:1; }
+  .header-text span { font-size:0.75rem; color:var(--yellow); letter-spacing:3px; text-transform:uppercase; }
+  .menu-label {
+    position:absolute; top:16px; right:16px;
+    font-family:'Bebas Neue',sans-serif; font-size:2.2rem;
+    color:var(--white); letter-spacing:4px;
+    text-shadow: 3px 3px 0 var(--red);
+  }
+
+  /* ======= CLOCK BAR ======= */
+  .clock-bar {
+    background: #111;
+    border-bottom: 2px solid #222;
+    padding: 8px 16px;
+    display: flex; align-items:center; justify-content:space-between;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .clock-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  #clock {
+    font-family:'Bebas Neue',sans-serif; font-size:1.5rem;
+    color:var(--yellow); letter-spacing:3px;
+  }
+  .clock-date { font-size:0.72rem; color:#888; }
+  .sub-badge {
+    background: var(--red);
+    padding: 4px 12px; border-radius:20px;
+    font-size:0.72rem; font-weight:700; letter-spacing:1px;
+  }
+  #countdown {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:1rem; color: var(--yellow); letter-spacing:2px;
+  }
+
+  /* ======= MAIN LAYOUT ======= */
+  main { padding: 14px; max-width: 480px; margin: 0 auto; }
+
+  /* ======= SECTION HEADERS ======= */
+  .section-title {
+    display:flex; align-items:center; gap:10px;
+    background: var(--red);
+    padding: 8px 14px;
+    border-radius: 8px 8px 0 0;
+    margin-top: 18px;
+    font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:2px;
+  }
+  .section-title .ico { font-size:1.3rem; }
+
+  /* ======= MENU CARD ======= */
+  .menu-card {
+    background: var(--card);
+    border: 1px solid #2a2a2a;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .menu-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid #1f1f1f;
+    display:flex; align-items:flex-start; gap:10px;
+  }
+  .menu-item:last-child { border-bottom:none; }
+  .bullet { color:var(--yellow); font-size:1.1rem; flex-shrink:0; margin-top:1px; }
+  .item-body { flex:1; }
+  .item-header { display:flex; justify-content:space-between; align-items:baseline; gap:6px; }
+  .item-name { font-weight:800; font-size:0.95rem; color:var(--yellow); line-height:1.2; }
+  .item-price {
+    font-family:'Bebas Neue',sans-serif; font-size:1.05rem;
+    color:var(--white); background:var(--red);
+    padding:1px 8px; border-radius:5px;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .item-desc { font-size:0.75rem; color:#aaa; margin-top:3px; line-height:1.4; }
+  .item-note { font-size:0.72rem; color:#888; font-style:italic; margin-top:2px; }
+
+  /* Asados note */
+  .section-note {
+    background:#1a1a1a; padding:10px 14px;
+    font-size:0.78rem; color:#bbb; line-height:1.5;
+    border-bottom:1px solid #222;
+  }
+
+  /* ======= BEBIDAS grid ======= */
+  .bebidas-grid { display:grid; grid-template-columns:1fr 1fr; }
+  .bebidas-grid .menu-item { border-right:1px solid #1f1f1f; }
+  .bebidas-grid .menu-item:nth-child(even) { border-right:none; }
+
+  /* ======= DOMICILIOS BANNER ======= */
+  .domicilios {
+    margin-top:20px;
+    background: linear-gradient(135deg, var(--red), #8a0000);
+    border-radius:14px;
+    padding:18px 20px;
+    text-align:center;
+    box-shadow: 0 6px 30px rgba(204,17,17,0.4);
+  }
+  .domicilios .d-label { font-size:0.8rem; letter-spacing:3px; color:rgba(255,255,255,0.7); text-transform:uppercase; }
+  .domicilios .d-title { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:2px; color:var(--white); }
+  .domicilios a {
+    display:inline-flex; align-items:center; gap:8px; margin-top:8px;
+    background:var(--yellow); color:var(--black);
+    padding:12px 26px; border-radius:30px;
+    font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:3px;
+    text-decoration:none; box-shadow:0 4px 16px rgba(245,196,0,0.4);
+    transition: transform .15s;
+  }
+  .domicilios a:hover { transform:scale(1.03); }
+
+  /* ======= FOOTER ======= */
+  footer {
+    text-align:center; padding:16px;
+    font-size:0.65rem; color:#444; letter-spacing:1px;
+    border-top:1px solid #1a1a1a; margin-top:10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- SUBSCRIPTION GATE -->
+<div id="gate">
+  <div class="gate-box">
+    <div class="logo-badge" style="margin:0 auto 10px; width:66px; height:66px;">
+      <span class="lg1">Arepa</span>
+      <span class="lg2">X4</span>
+    </div>
+    <div class="gate-logo">Arepa X4</div>
+    <div class="gate-sub">Menú Digital Oficial</div>
+    <h2>Acceso al Menú</h2>
+    <p>Ingresa tu código de activación para acceder al menú digital. Cada suscripción incluye <strong>10 días</strong> de acceso.</p>
+    <input type="text" id="codeInput" class="gate-input" placeholder="CÓDIGO DE ACTIVACIÓN" maxlength="20" autocomplete="off">
+    <button class="gate-btn" onclick="activateCode()">🔓 ACTIVAR MENÚ</button>
+    <div class="gate-err" id="gateErr"></div>
+    <button class="trial-btn" onclick="startTrial()">⏱ Iniciar período de prueba (10 días)</button>
+  </div>
+</div>
+
+<!-- EXPIRED SCREEN -->
+<div id="expired">
+  <h2>⛔ Suscripción Vencida</h2>
+  <p>Tu acceso al menú digital ha expirado.<br>Contáctanos para renovar tu suscripción.</p>
+  <a href="https://wa.me/573137340806?text=Hola!%20Quiero%20renovar%20mi%20acceso%20al%20men%C3%BA%20digital%20de%20Arepa%20X4" target="_blank">📲 Renovar por WhatsApp</a>
+</div>
+
+<!-- CLOCK BAR -->
+<div class="clock-bar">
+  <div class="clock-left">
+    <div id="clock">00:00:00</div>
+    <div class="clock-date" id="clockDate"></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <span class="sub-badge">🟢 ACTIVO</span>
+    <div style="text-align:right;">
+      <div style="font-size:0.65rem;color:#666;">VENCE EN</div>
+      <div id="countdown">— — —</div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="menu-label">MENÚ</div>
+  <div class="header-top">
+    <div class="logo-badge">
+      <span class="lg1">Arepa</span>
+      <span class="lg2">X4</span>
+    </div>
+    <div class="header-text">
+      <h1>Arepa X4</h1>
+      <span>Asados y Restaurante</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- AREPAS -->
+  <div class="section-title"><span class="ico">🫓</span> AREPAS</div>
+  <div class="menu-card">
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Arepa solo queso</span>
+          <span class="item-price">$7.000</span>
+        </div>
+        <div class="item-desc">Queso costeño y mantequilla.</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Arepa con jamón o mortadela</span>
+          <span class="item-price">$9.000</span>
+        </div>
+        <div class="item-desc">Mantequilla, queso costeño y jamón o mortadela.</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Arepa con todo</span>
+          <span class="item-price">$14.000</span>
+        </div>
+        <div class="item-desc">Queso costeño, pollo, chicharrón, salchicha tipo ranchera, Butifarra y carne desmechada.</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Arepa con todo + adicional</span>
+          <span class="item-price">$17.000</span>
+        </div>
+        <div class="item-desc">Incluye todos los ingredientes + adición extra.</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Pollo a la broaster</span>
+          <span class="item-price" style="background:#555;">Consultar</span>
+        </div>
+        <div class="item-desc">Pollo apanado crujiente, servido con papas y aderezo de la casa.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SALCHIPAPAS -->
+  <div class="section-title"><span class="ico">🌭</span> SALCHIPAPAS</div>
+  <div class="menu-card">
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Salchipapa</span>
+          <span class="item-price">$15.000</span>
+        </div>
+        <div class="item-desc">Papas, salchicha mixta, Butifarra, salchicha tipo ranchera, maíz, queso mozarela.</div>
+        <div class="item-note">Opcional: ripio de papa</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Salchipapa Doble</span>
+          <span class="item-price">$25.000</span>
+        </div>
+        <div class="item-desc">Papas, salchicha mixta, Butifarra, salchicha tipo ranchera, maíz.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASADOS AL CARBÓN -->
+  <div class="section-title"><span class="ico">🔥</span> ASADOS AL CARBÓN</div>
+  <div class="menu-card">
+    <div class="section-note">Todos acompañados de yuca, papas al vapor, ensalada y chorizo campesino.</div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Cañón de cerdo <span style="font-weight:400;color:#888;">210 gr</span></span>
+          <span class="item-price">$22.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Res Aldana <span style="font-weight:400;color:#888;">(churrasco) 210 gr</span></span>
+          <span class="item-price">$25.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Res Punta de Anca <span style="font-weight:400;color:#888;">210 gr</span></span>
+          <span class="item-price">$27.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Pechuga <span style="font-weight:400;color:#888;">240 gr</span></span>
+          <span class="item-price">$24.000</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEBIDAS -->
+  <div class="section-title"><span class="ico">🥤</span> BEBIDAS</div>
+  <div class="menu-card">
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Coca Cola 1.5 Ml</span>
+          <span class="item-price">$10.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Postobón 1.5 Ml</span>
+          <span class="item-price">$8.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Coronita</span>
+          <span class="item-price">$6.000</span>
+        </div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Cervezas</span>
+          <span class="item-price">$5.000</span>
+        </div>
+        <div class="item-desc">Light, Pilsen, Negra, Costeñita</div>
+      </div>
+    </div>
+    <div class="menu-item">
+      <span class="bullet">●</span>
+      <div class="item-body">
+        <div class="item-header">
+          <span class="item-name">Gaseosas</span>
+          <span class="item-price">$5.000</span>
+        </div>
+        <div class="item-desc">Hit, Coca Cola, Postobón</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOMICILIOS -->
+  <div class="domicilios">
+    <div class="d-label">📦 Pedidos a domicilio</div>
+    <div class="d-title">¡Pide a tu puerta!</div>
+    <a href="https://wa.me/573137340806" target="_blank">
+      📲 313 734 0806
+    </a>
+  </div>
+
+</main>
+
+<footer>
+  Desarrollada por Vibras Positivas HM — Derechos de Autor Reservados
+</footer>
+
+<script>
+  // ===== KEYS (cámbielas para activar clientes reales) =====
+  const VALID_CODES = ['AREPA2025','AX4VIP','MENU10'];
+  const TRIAL_KEY   = 'ax4_trial_start';
+  const SUB_KEY     = 'ax4_sub_expiry';
+  const DAYS_10     = 10 * 24 * 60 * 60 * 1000;
+
+  function now(){ return Date.now(); }
+
+  function getExpiry(){
+    const v = localStorage.getItem(SUB_KEY);
+    return v ? parseInt(v) : null;
+  }
+  function setExpiry(ts){ localStorage.setItem(SUB_KEY, ts.toString()); }
+
+  function checkAccess(){
+    const exp = getExpiry();
+    if(!exp) return 'none';
+    if(now() < exp) return 'active';
+    return 'expired';
+  }
+
+  function activateCode(){
+    const val = document.getElementById('codeInput').value.trim().toUpperCase();
+    const err = document.getElementById('gateErr');
+    if(!val){ err.textContent='Por favor ingresa un código.'; return; }
+    if(VALID_CODES.includes(val)){
+      setExpiry(now() + DAYS_10);
+      openMenu();
+    } else {
+      err.textContent='❌ Código inválido. Verifica e intenta de nuevo.';
+    }
+  }
+  document.getElementById('codeInput').addEventListener('keydown', e=>{ if(e.key==='Enter') activateCode(); });
+
+  function startTrial(){
+    const alreadyUsed = localStorage.getItem(TRIAL_KEY);
+    if(alreadyUsed){
+      document.getElementById('gateErr').textContent='Ya usaste el período de prueba en este dispositivo.';
+      return;
+    }
+    localStorage.setItem(TRIAL_KEY,'1');
+    setExpiry(now() + DAYS_10);
+    openMenu();
+  }
+
+  function openMenu(){
+    document.getElementById('gate').classList.add('hidden');
+  }
+
+  // ===== CLOCK =====
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function formatCountdown(ms){
+    if(ms <= 0) return '00D 00H 00M';
+    const d = Math.floor(ms/86400000);
+    const h = Math.floor((ms%86400000)/3600000);
+    const m = Math.floor((ms%3600000)/60000);
+    return `${pad(d)}D ${pad(h)}H ${pad(m)}M`;
+  }
+
+  function tickClock(){
+    const now2 = new Date();
+    // Colombia UTC-5
+    const col = new Date(now2.toLocaleString('en-US',{timeZone:'America/Bogota'}));
+    document.getElementById('clock').textContent =
+      `${pad(col.getHours())}:${pad(col.getMinutes())}:${pad(col.getSeconds())}`;
+    const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    document.getElementById('clockDate').textContent =
+      `${days[col.getDay()]} ${col.getDate()} ${months[col.getMonth()]} ${col.getFullYear()}`;
+
+    const exp = getExpiry();
+    if(exp){
+      const remaining = exp - now2.getTime();
+      if(remaining > 0){
+        document.getElementById('countdown').textContent = formatCountdown(remaining);
+      } else {
+        document.getElementById('countdown').textContent = 'VENCIDO';
+        document.getElementById('expired').classList.add('show');
+      }
+    }
+  }
+  setInterval(tickClock, 1000);
+  tickClock();
+
+  // ===== INIT =====
+  (function init(){
+    const status = checkAccess();
+    if(status === 'active'){
+      openMenu();
+    } else if(status === 'expired'){
+      document.getElementById('gate').classList.add('hidden');
+      document.getElementById('expired').classList.add('show');
+    }
+    // else: show gate
+  })();
+</script>
+</body>
+</html>
